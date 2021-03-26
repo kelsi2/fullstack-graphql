@@ -4,28 +4,38 @@ import { useQuery, useMutation } from "@apollo/react-hooks";
 import PetsList from "../components/PetsList";
 import NewPetModal from "../components/NewPetModal";
 import Loader from "../components/Loader";
-import { AddTypenameToAbstract } from "graphql-tools";
+
+const PETS_FIELDS = gql`
+  fragment PetsFields on Pet {
+    name
+    id
+    type
+    img
+    vaccinated @client
+    owner {
+      id
+      # @client tells Apollo this information isn't in the server side schema so don't send it to the server, it only lives on the client side (see client.js)
+      age @client
+    }
+  }
+`;
 
 const ALL_PETS = gql`
   query AllPets {
     pets {
-      name
-      id
-      type
-      img
+      ...PetsFields
     }
   }
+  ${PETS_FIELDS}
 `;
 
 const NEW_PET = gql`
   mutation createPet($newPet: NewPetInput!) {
     addPet(input: $newPet) {
-      id
-      name
-      type
-      img
+      ...PetsFields
     }
   }
+  ${PETS_FIELDS}
 `;
 
 export default function Pets() {
@@ -55,6 +65,11 @@ export default function Pets() {
           name: input.name,
           type: input.type,
           img: "https://via.placeholder.com/300",
+          vaccinated: true,
+          owner: {
+            id: Math.floor(Math.random() * 1000) + "",
+            age: 35,
+          },
         },
       },
     });
@@ -67,6 +82,8 @@ export default function Pets() {
   if (error || newPet.error) {
     return <p>error</p>;
   }
+
+  console.log(data.pets[0]);
 
   if (modal) {
     return <NewPetModal onSubmit={onSubmit} onCancel={() => setModal(false)} />;
